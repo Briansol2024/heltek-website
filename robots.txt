@@ -1,0 +1,3 @@
+# Vorschau: nicht für Suchmaschinen
+User-agent: *
+Disallow: /

@@ -1,0 +1,7 @@
+# Originale und Arbeitsdateien, nicht veröffentlichen
+_quellen/
+_test/
+_bilder.log
+_server.log
+__pycache__/
+*.pyc

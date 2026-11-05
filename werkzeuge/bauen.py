@@ -393,7 +393,7 @@ def startseite():
   <div class="buehne-bild" data-tiefe=".25" style="background-image:url(assets/img/halle-2000.jpg)"></div>
   <div class="huelle">
     <div>
-      <div class="marke auftritt">Fleischerei- &amp; Großküchentechnik<span class="nur-gross">· Bad Fallingbostel</span></div>
+      <div class="marke auftritt"><span>Fleischerei- &amp; Großküchentechnik<span class="nur-gross"> · Bad Fallingbostel</span></span></div>
       <h1 class="buehne-titel"><span class="zeile"><span>Qualitäts-</span></span><span class="zeile"><span>produkte</span></span><span class="zeile"><span>für <em>Profis.</em></span></span></h1>
       <p class="einleitung auftritt" style="--d:.35s"><strong>HELTEK Maschinenbau</strong> – Ihr Spezialist für KILIA-Fleischereimaschinen und KORIMAT-Autoklaven. Neumaschinen, Werksüberholungen, Original-Ersatzteile und Kundendienst aus einer Hand.</p>
       <div class="knopfreihe auftritt" style="--d:.5s"><a class="knopf knopf-rot" href="maschinen/">Maschinen ansehen {sym('pfeil', 'pfeil')}</a><a class="knopf knopf-rahmen" href="kontakt/">Beratung anfragen</a></div>

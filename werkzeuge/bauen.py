@@ -81,15 +81,29 @@ ROTOR_SPRITE = (
     '<linearGradient id="stahl" x1="0" y1="0" x2="1" y2="1">'
     '<stop offset="0" stop-color="#f4f6f8"/><stop offset=".35" stop-color="#9aa4b0"/><stop offset=".55" stop-color="#e3e8ee"/>'
     '<stop offset=".8" stop-color="#6d7783"/><stop offset="1" stop-color="#c3cad3"/></linearGradient>'
+    '<linearGradient id="glanz" x1="0" y1="0" x2="1" y2=".35"><stop offset=".38" stop-color="#fff" stop-opacity="0"/>'
+    '<stop offset=".5" stop-color="#fff" stop-opacity=".7"/><stop offset=".62" stop-color="#fff" stop-opacity="0"/></linearGradient>'
+    '<radialGradient id="scheibe"><stop offset=".22" stop-color="#c8cfd7" stop-opacity="0"/><stop offset=".55" stop-color="#c8cfd7" stop-opacity=".42"/>'
+    '<stop offset=".86" stop-color="#9aa4b0" stop-opacity=".3"/><stop offset="1" stop-color="#9aa4b0" stop-opacity="0"/></radialGradient>'
     f'<g id="rk"><path fill-rule="evenodd" d="{_pfade[0]}"/></g>'
     f'<g id="rn"><path fill="#ff0716" fill-rule="evenodd" d="{_pfade[1]}"/></g>'
     '</defs></svg>')
 
 
-def rotor(cls="rotor", stahl=False):
-    fuell = 'url(#stahl)' if stahl else 'currentColor'
-    return (f'<div class="{cls}" aria-hidden="true"><svg viewBox="{_vb}">'
-            f'<g class="klingen"><use href="#rk" fill="{fuell}"/></g><g class="nabe"><use href="#rn"/></g></svg></div>')
+_R = -float(_vb.split()[0])
+
+
+def rotor(cls="rotor", stahl=False, kennung="held"):
+    if not stahl:
+        return (f'<div class="{cls}" aria-hidden="true"><svg viewBox="{_vb}">'
+                f'<g class="klingen"><use href="#rk" fill="currentColor"/></g><g class="nabe"><use href="#rn"/></g></svg></div>')
+    R = _R
+    flaeche = f'x="{-R:g}" y="{-R:g}" width="{2 * R:g}" height="{2 * R:g}"'
+    return (f'<div class="{cls} rotor-stahl" aria-hidden="true"><svg viewBox="{_vb}">'
+            f'<defs><mask id="m-{kennung}" maskUnits="userSpaceOnUse" {flaeche}><g class="klingen"><use href="#rk" fill="#fff"/></g></mask></defs>'
+            f'<circle class="scheibe" r="{R * .97:.0f}" fill="url(#scheibe)"/>'
+            f'<g mask="url(#m-{kennung})"><rect {flaeche} fill="url(#stahl)"/><rect class="glanz" {flaeche} fill="url(#glanz)"/></g>'
+            f'<g class="nabe"><use href="#rn"/></g></svg></div>')
 
 
 # ── Daten: Maschinen ─────────────────────────────────────────────────────────────────
@@ -168,7 +182,7 @@ NAV = [("maschinen/", "Maschinen"), ("kilia/", "KILIA"), ("korimat/", "KORIMAT")
 
 
 # ── Seitenrahmen ─────────────────────────────────────────────────────────────────────
-def rahmen(pfad, titel, beschreibung, inhalt, aktiv="", kopfbild=None, extra_kopf="", jsonld=None, ohne_index=False):
+def rahmen(pfad, titel, beschreibung, inhalt, aktiv="", kopfbild=None, extra_kopf="", jsonld=None, ohne_index=False, intro=False):
     tiefe = pfad.count("/")
     r = "../" * tiefe
     url = BASIS + "/" + pfad.replace("index.html", "")
@@ -184,7 +198,7 @@ def rahmen(pfad, titel, beschreibung, inhalt, aktiv="", kopfbild=None, extra_kop
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<script>document.documentElement.classList.add("js")</script>
+<script>document.documentElement.classList.add("js"){';if(!location.hash&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("intro")' if intro else ''}</script>
 <title>{e(seitentitel)}</title>
 <meta name="description" content="{e(beschreibung)}">
 {robots}
@@ -372,6 +386,15 @@ def seitenkopf(r, marke_text, titel, einleitung, bild=None, pfad_teile=None, kno
 def startseite():
     r = ""
     n = len(MASCHINEN)
+    neu = MASCHINEN[:5]
+    eintraege = "".join(
+        f'<a class="neu-eintrag{" an" if i == 0 else ""}" href="maschinen/{m["slug"]}/"{"" if i == 0 else " tabindex=\"-1\""}>'
+        f'<img src="assets/maschinen/{m["quelle_slug"]}/{m["bilder"][0]["nr"]:02d}-720.jpg" alt="" width="96" height="72" loading="lazy">'
+        f'<span><small>{e(KAT_NAME[m["kat"]])}{" · " + e(m["marke"]) if m["marke"] else ""}</small><b>{e(m["titel"])}</b></span><i>{sym("pfeil")}</i></a>'
+        for i, m in enumerate(neu))
+    neu_karte = (f'<aside class="neu-karte auftritt" style="--d:.8s" aria-label="Neu im Bestand">'
+                 f'<div class="neu-kopf"><span class="neu-punkt"></span>Neu im Bestand<span class="neu-zahl">1 / {len(neu)}</span></div>'
+                 f'<div class="neu-liste">{eintraege}</div><div class="neu-balken"><i></i></div></aside>')
     band = "".join(f"<span>{w}</span>" for w in ["Kutter", "Vakuumkutter", "Fleischwölfe", "Autoklaven", "Füller", "Speckschneider", "Mischer", "Ersatzteile", "Kundendienst"])
     zahlen = [("1932", "Tradition der Marke KILIA"), ("2016", "HELTEK übernimmt die Marke KILIA"), ("2021", "Offizieller Vertriebspartner für KORIMAT-Autoklaven"), (str(n), "Maschinen im aktuellen Angebot")]
     zahl_html = "".join(f'<div class="zahl" data-auf style="--d:{i * .1:.1f}s"><div class="zaehlwerk" data-wert="{w}">{w}</div><p>{e(t)}</p></div>' for i, (w, t) in enumerate(zahlen))
@@ -391,7 +414,7 @@ def startseite():
         f'<figure class="stimme" data-auf style="--d:{(i % 3) * .08:.2f}s"><div class="sterne" aria-label="5 von 5 Sternen">{STERN * 5}</div><blockquote>{e(t)}</blockquote><figcaption>{e(name)}</figcaption></figure>'
         for i, (_, t, name) in enumerate(REZENSIONEN))
     inhalt = f"""
-<section class="buehne">
+<section class="buehne" data-intro>
   <div class="buehne-bild" data-tiefe=".25" style="background-image:url(assets/img/halle-2000.jpg)"></div>
   <div class="huelle">
     <div>
@@ -399,12 +422,13 @@ def startseite():
       <h1 class="buehne-titel"><span class="zeile"><span>Qualitäts-</span></span><span class="zeile"><span>produkte</span></span><span class="zeile"><span>für <em>Profis.</em></span></span></h1>
       <p class="einleitung auftritt" style="--d:.35s"><strong>HELTEK Maschinenbau</strong> – Ihr Spezialist für KILIA-Fleischereimaschinen und KORIMAT-Autoklaven. Neumaschinen, Werksüberholungen, Original-Ersatzteile und Kundendienst aus einer Hand.</p>
       <div class="knopfreihe auftritt" style="--d:.5s"><a class="knopf knopf-rot" href="maschinen/">Maschinen ansehen {sym('pfeil', 'pfeil')}</a><a class="knopf knopf-rahmen" href="kontakt/">Beratung anfragen</a></div>
+      <ul class="vertrauen auftritt" style="--d:.65s"><li>{sym('haken')}Inhaber der Marke KILIA</li><li>{sym('haken')}Offizieller KORIMAT-Partner</li><li>{sym('haken')}Mietkauf &amp; Leasing</li></ul>
     </div>
     <div class="buehne-rotor">
       <span class="ring ring-2" aria-hidden="true"></span><span class="ring ring-1" aria-hidden="true"></span>
-      {rotor("rotor", stahl=True)}
-      <div class="drehzahl" aria-hidden="true">Messerwelle <b>480</b> UpM</div>
+      <div class="kipp">{rotor("rotor", stahl=True)}<canvas class="funken" aria-hidden="true"></canvas></div>
     </div>
+    {neu_karte}
   </div>
   <div class="scrollhinweis" aria-hidden="true"><i></i>Scrollen</div>
   <div class="laufband" aria-hidden="true"><div class="laufband-spur">{band}{band}</div></div>
@@ -481,7 +505,7 @@ def startseite():
     vorlade = '<link rel="preload" as="image" href="assets/img/halle-2000.jpg">\n'
     return rahmen("index.html", "HELTEK Maschinenbau | Fleischerei- und Großküchentechnik",
                   "HELTEK Maschinenbau in Bad Fallingbostel: KILIA-Kutter, Vakuumkutter und Fleischwölfe, KORIMAT-Autoklaven, Gebrauchtmaschinen, Ersatzteile, Kundendienst sowie Mietkauf und Leasing.",
-                  inhalt, aktiv="", extra_kopf=vorlade, jsonld=ld)
+                  inhalt, aktiv="", extra_kopf=vorlade, jsonld=ld, intro=True)
 
 
 # ── Katalog ──────────────────────────────────────────────────────────────────────────
@@ -787,7 +811,7 @@ DATENSCHUTZ = f"""
 # ── 404 und Weiterleitungen alter Adressen ───────────────────────────────────────────
 def nicht_gefunden():
     inhalt = f"""<section class="nichtda dunkel"><div>
-  {rotor("rotor", stahl=True)}
+  {rotor("rotor", stahl=True, kennung="fehler")}
   <div class="marke" style="justify-content:center">Fehler 404</div>
   <h1 style="font-size:clamp(36px,6vw,72px);margin-bottom:18px">Leerlauf.</h1>
   <p class="leise" style="max-width:44ch;margin:0 auto 28px">Diese Seite gibt es nicht (mehr). Vielleicht finden Sie, was Sie suchen, unter unseren Maschinen.</p>

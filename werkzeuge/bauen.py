@@ -15,7 +15,9 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8")
 WURZEL = Path(__file__).resolve().parent.parent
 LIVE = "--live" in sys.argv
-BASIS = "https://www.heltek.de"
+# Vorschau läuft als GitHub-Testadresse im Unterordner, live unter der Domain
+BASIS = "https://www.heltek.de" if LIVE else "https://briansol2024.github.io/heltek-website"
+WURZEL_PFAD = "/" if LIVE else "/heltek-website/"
 HEUTE = date.today()
 
 FIRMA = "HELTEK Maschinenbau GmbH & Co. KG"
@@ -792,12 +794,11 @@ def nicht_gefunden():
   <div class="knopfreihe" style="justify-content:center"><a class="knopf knopf-rot" href="/maschinen/">Zu den Maschinen {sym('pfeil', 'pfeil')}</a><a class="knopf knopf-rahmen" href="/">Zur Startseite</a></div>
 </div></section>"""
     s = rahmen("404.html", "Seite nicht gefunden", "Diese Seite gibt es nicht.", inhalt, ohne_index=True)
-    # 404 liegt an der Wurzel, wird aber unter jeder Adresse ausgeliefert: dort absolute Pfade
-    return s.replace('href="assets/', 'href="/assets/').replace('src="assets/', 'src="/assets/').replace('href="maschinen/', 'href="/maschinen/') \
-        .replace('href="kilia/', 'href="/kilia/').replace('href="korimat/', 'href="/korimat/').replace('href="kundendienst/', 'href="/kundendienst/') \
-        .replace('href="kontakt/', 'href="/kontakt/').replace('href="impressum/', 'href="/impressum/').replace('href="datenschutz/', 'href="/datenschutz/') \
-        .replace('href="agb/', 'href="/agb/').replace('href="widerrufsrecht/', 'href="/widerrufsrecht/').replace('href="haftungsausschluss/', 'href="/haftungsausschluss/') \
-        .replace('href="#mietkauf"', 'href="/#mietkauf"').replace('href="./"', 'href="/"')
+    # 404 wird unter jeder Adresse ausgeliefert: dort absolute Pfade (mit Unterordner der Testadresse)
+    w = WURZEL_PFAD
+    s = s.replace('href="./"', f'href="{w}"').replace('href="/"', f'href="{w}"').replace('href="/maschinen/"', f'href="{w}maschinen/"')
+    s = re.sub(r'(href|src)="(assets/|maschinen/|kilia/|korimat/|kundendienst/|kontakt/|impressum/|datenschutz/|agb/|widerrufsrecht/|haftungsausschluss/|#mietkauf)', lambda m: f'{m.group(1)}="{w}{m.group(2)}', s)
+    return s
 
 
 def weiterleitung(alt, neu):

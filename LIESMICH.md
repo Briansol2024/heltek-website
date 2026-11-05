@@ -3,7 +3,11 @@
 Neubau der bisherigen WordPress-Seite heltek.de: gleiche Inhalte, modern und mit viel Bewegung.
 Statisches HTML, CSS und JavaScript ohne Bibliotheken, ohne Cookies und ohne Anfragen an andere Anbieter.
 
-Stand: 05.11.2026, Vorschau. Noch nicht veröffentlicht.
+Stand: 05.11.2026, Vorschau.
+
+- Repo: https://github.com/Briansol2024/heltek-website (öffentlich, GitHub Pages aus `main`)
+- Testadresse: https://briansol2024.github.io/heltek-website/ (noindex, nicht für Suchmaschinen)
+- Die Vorschau baut Links und Fehlerseite für den Unterordner `/heltek-website/`; `--live` baut für die Domain.
 
 ## Aufbau
 

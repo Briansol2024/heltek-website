@@ -22,12 +22,13 @@
     groesse(); w.addEventListener('resize', groesse);
     return {
       // anzahl Funken, rSpitze = Radius der Klingenspitzen in px, omega = Drehzahl in Grad je Sekunde
-      spruehen: function (anzahl, rSpitze, omega) {
+      spruehen: function (anzahl, rSpitze, omega, sx) {
+        sx = sx || 1;
         var cx = B / 2, cy = H / 2, k = Math.min(1.4, omega / 1440);
         for (var i = 0; i < anzahl && teile.length < 280; i++) {
           var th = Math.random() * Math.PI * 2, c = Math.cos(th), s = Math.sin(th);
           var v = (160 + Math.random() * 420) * (0.35 + k), aus = 0.15 + Math.random() * 0.35;
-          teile.push({ x: cx + c * rSpitze, y: cy + s * rSpitze, vx: (-s + c * aus) * v, vy: (c + s * aus) * v, t: 0, max: 0.3 + Math.random() * 0.55 });
+          teile.push({ x: cx + c * rSpitze * sx, y: cy + s * rSpitze, vx: (-s * sx + c * aus) * v, vy: (c + s * aus) * v, t: 0, max: 0.3 + Math.random() * 0.55 });
         }
       },
       schritt: function (dt) {
@@ -139,54 +140,27 @@
   }
 
   /* ── Der Messerkopf: läuft beim Scrollen hoch ─────────────────────── */
-  // Grundtempo: 16 s je Umdrehung = 22,5 Grad je Sekunde. rotor.tempo ist das Vielfache davon.
-  var klingen = $('.buehne-rotor .klingen'), rotorHuelle = $('.buehne-rotor');
+  // Der Messerkopf im Logo: Grundtempo 9 s je Umdrehung = 40 Grad je Sekunde. Scrollen und Zeigen lassen ihn hochlaufen.
+  var logoDreh = $('.kopf .logo .r3d-dreh'), logoR3d = $('.kopf .logo .r3d');
   var rotor = { tempo: 1, schub: 0, winkel: function () {} };
-  if (klingen && !ruhig && klingen.getAnimations) {
-    var anim = null, ziel = 1, letztesY = w.scrollY, ueber = false, zuletzt = performance.now();
-    var funkenFlaeche = $('.buehne-rotor .funken'), grossBild = w.matchMedia('(min-width: 901px)').matches;
-    var funken = funkenFlaeche && grossBild ? Funken(funkenFlaeche) : null, rotorBild = $('.buehne-rotor .rotor');
-    var holen = function () { if (!anim) anim = klingen.getAnimations()[0] || null; return anim; };
-    rotor.winkel = function (grad) { var a = holen(); if (a) a.currentTime = (((grad % 360) + 360) % 360) / 360 * 16000; };
+  if (logoDreh && !ruhig && logoDreh.getAnimations) {
+    var anim = null, ziel = 1, letztesY = w.scrollY, ueber = false;
+    var holen = function () { if (!anim) anim = logoDreh.getAnimations()[0] || null; return anim; };
+    rotor.winkel = function (grad) { var a = holen(); if (a) a.currentTime = (((grad % 360) + 360) % 360) / 360 * 9000; };
     w.addEventListener('scroll', function () { var y = w.scrollY; rotor.schub += Math.abs(y - letztesY); letztesY = y; }, { passive: true });
-    if (rotorHuelle) {
-      rotorHuelle.addEventListener('pointerenter', function () { ueber = true; });
-      rotorHuelle.addEventListener('pointerleave', function () { ueber = false; });
+    var logoLink = $('.kopf .logo');
+    if (logoLink) {
+      logoLink.addEventListener('pointerenter', function () { ueber = true; });
+      logoLink.addEventListener('pointerleave', function () { ueber = false; });
     }
-    (function lauf(jetzt) {
-      jetzt = jetzt || performance.now();
-      var dt = Math.min(0.05, (jetzt - zuletzt) / 1000); zuletzt = jetzt;
-      ziel = 1 + Math.min(rotor.schub * 0.06, 9) + (ueber ? 2.5 : 0);
+    (function lauf() {
+      ziel = 1 + Math.min(rotor.schub * 0.05, 8) + (ueber ? 4 : 0);
       rotor.schub *= 0.88;
-      rotor.tempo += (ziel - rotor.tempo) * (rotor.tempo > ziel ? 0.035 : 0.06);
+      rotor.tempo += (ziel - rotor.tempo) * (rotor.tempo > ziel ? 0.03 : 0.08);
       var a = holen(); if (a) a.playbackRate = rotor.tempo;
-      if (rotorHuelle) rotorHuelle.style.setProperty('--unschaerfe', Math.max(0, Math.min(0.9, (rotor.tempo - 4) / 14)).toFixed(3));
-      if (funken && rotorBild) {
-        if (w.scrollY < w.innerHeight && rotor.tempo > 4.5) funken.spruehen(Math.round((rotor.tempo - 4.5) * 0.9), rotorBild.offsetWidth * 0.43, rotor.tempo * 22.5);
-        funken.schritt(dt);
-      }
+      if (logoR3d) logoR3d.style.setProperty('--unschaerfe', Math.max(0, Math.min(0.9, (rotor.tempo - 3) / 10)).toFixed(3));
       requestAnimationFrame(lauf);
     })();
-
-    // Messerkopf kippt leicht zum Zeiger, Knöpfe ziehen den Zeiger an
-    var buehneEl = $('.buehne'), kipp = $('.buehne-rotor .kipp');
-    if (buehneEl && kipp && w.matchMedia('(hover: hover) and (min-width: 901px)').matches) {
-      var knoepfe = $$('.buehne .knopf');
-      buehneEl.addEventListener('pointermove', function (e) {
-        var r = kipp.getBoundingClientRect(), x = (e.clientX - (r.left + r.width / 2)) / w.innerWidth, y = (e.clientY - (r.top + r.height / 2)) / w.innerHeight;
-        kipp.style.setProperty('--ky', (x * 16).toFixed(2) + 'deg'); kipp.style.setProperty('--kx', (-y * 12).toFixed(2) + 'deg');
-        knoepfe.forEach(function (k) {
-          var q = k.getBoundingClientRect(), dx = e.clientX - (q.left + q.width / 2), dy = e.clientY - (q.top + q.height / 2);
-          var nah = Math.abs(dx) < q.width / 2 + 40 && Math.abs(dy) < q.height / 2 + 40;
-          k.style.setProperty('--zx', nah ? Math.max(-10, Math.min(10, dx * 0.18)).toFixed(1) + 'px' : '0px');
-          k.style.setProperty('--zy', nah ? Math.max(-8, Math.min(8, dy * 0.3)).toFixed(1) + 'px' : '0px');
-        });
-      });
-      buehneEl.addEventListener('pointerleave', function () {
-        kipp.style.setProperty('--kx', '0deg'); kipp.style.setProperty('--ky', '0deg');
-        knoepfe.forEach(function (k) { k.style.setProperty('--zx', '0px'); k.style.setProperty('--zy', '0px'); });
-      });
-    }
   }
 
   /* ── Neu im Bestand: wechselt durch die neuesten Maschinen ─────────── */
@@ -225,69 +199,65 @@
   if (mitIntro) introSpielen();
 
   function introSpielen() {
-    var heldRotor = $('.buehne-rotor .rotor svg'), rk = $('#rk path'), logo = $('.kopf .logo img');
-    if (!heldRotor || !rk) { html.classList.remove('intro'); bereit(); return; }
-    var vb = heldRotor.getAttribute('viewBox'), R = -parseFloat(vb.split(/\s+/)[0]);
-    var teile = rk.getAttribute('d').match(/M[^M]+/g) || [];
-    var NS = 'http://www.w3.org/2000/svg', TR = R * 1.1, STRICHE = 48;
-    var striche = '';
-    for (var i = 0; i < STRICHE; i++) {
-      var wi = (i / STRICHE) * Math.PI * 2 - Math.PI / 2, c = Math.cos(wi), s = Math.sin(wi);
-      striche += '<line class="strich-tacho" x1="' + (c * R * 1.2).toFixed(1) + '" y1="' + (s * R * 1.2).toFixed(1) + '" x2="' + (c * R * (i % 4 ? 1.25 : 1.29)).toFixed(1) + '" y2="' + (s * R * (i % 4 ? 1.25 : 1.29)).toFixed(1) + '"/>';
-    }
-    var flaeche = 'x="' + (-R) + '" y="' + (-R) + '" width="' + 2 * R + '" height="' + 2 * R + '"';
-    var umfang = 2 * Math.PI * TR;
+    var kopfLogo = $('.kopf .logo'), kopfR3d = kopfLogo && $('.r3d', kopfLogo), kopfWort = kopfLogo && $('.logo-wort', kopfLogo);
+    if (!kopfLogo || !kopfR3d || !kopfWort) { html.classList.remove('intro'); bereit(); return; }
+    var NS = 'http://www.w3.org/2000/svg';
     var ov = d.createElement('div');
     ov.className = 'intro'; ov.setAttribute('aria-hidden', 'true');
     ov.innerHTML =
       '<div class="intro-platte intro-a"></div><div class="intro-platte intro-b"></div><div class="intro-schnitt"></div>' +
-      '<div class="intro-mitte"><div class="intro-rotor"><div class="intro-glut"></div><svg viewBox="' + vb + '" xmlns="' + NS + '">' +
-      '<defs><mask id="m-intro" maskUnits="userSpaceOnUse" ' + flaeche + '><g class="i-dreh">' +
-      teile.map(function (t) { return '<path class="i-klinge" fill="#fff" fill-rule="evenodd" d="' + t + '"/>'; }).join('') +
-      '</g></mask></defs>' +
-      '<circle class="tacho-spur" r="' + TR + '"/><circle class="tacho" r="' + TR + '" stroke-dasharray="' + umfang.toFixed(1) + '" stroke-dashoffset="' + umfang.toFixed(1) + '" transform="rotate(-90)"/>' + striche +
-      '<circle class="i-scheibe" r="' + (R * 0.97).toFixed(0) + '" fill="url(#scheibe)" opacity="0"/>' +
-      '<g mask="url(#m-intro)"><rect ' + flaeche + ' fill="url(#stahl)"/><rect class="glanz" ' + flaeche + ' fill="url(#glanz)" style="transform-box:fill-box;animation:glanz 2.4s ease-in-out infinite"/></g>' +
-      '<g class="i-nabe"><use href="#rn"/></g></svg><canvas class="funken"></canvas></div>' +
-      '<div class="intro-upm"><b>0</b><span>UpM</span></div>' +
-      (logo ? '<div class="intro-logo"><img src="' + logo.getAttribute('src') + '" alt=""></div>' : '') +
-      '</div><button class="intro-weiter" type="button" tabindex="-1">Überspringen</button>';
+      '<div class="intro-mitte"><div class="intro-logo-gross"><span class="intro-zeichen"><span class="intro-glut"></span>' +
+      kopfR3d.outerHTML.replace(/m3-kopf/g, 'm3-intro') + '<canvas class="funken"></canvas></span>' +
+      '<img class="logo-wort" src="' + kopfWort.getAttribute('src') + '" alt=""></div>' +
+      '<div class="intro-upm"><b>0</b><span>UpM</span></div></div>' +
+      '<button class="intro-weiter" type="button" tabindex="-1">Überspringen</button>';
     body.appendChild(ov);
     html.classList.add('intro-aktiv'); html.classList.remove('intro');
 
-    var dreh = $('.i-dreh', ov), nabe = $('.i-nabe', ov), tacho = $('.tacho', ov), scheibe = $('.i-scheibe', ov), strichEl = $$('.strich-tacho', ov);
-    var upm = $('.intro-upm', ov), upmZahl = $('.intro-upm b', ov), logoEl = $('.intro-logo', ov), rotorEl = $('.intro-rotor', ov);
-    var schnitt = $('.intro-schnitt', ov), platteA = $('.intro-a', ov), platteB = $('.intro-b', ov);
+    var gross = $('.intro-logo-gross', ov), zeichen = $('.intro-zeichen', ov), r3dEl = $('.r3d', ov), dreh = $('.r3d-dreh', ov);
+    var wort = $('.logo-wort', ov), upm = $('.intro-upm', ov), upmZahl = $('.intro-upm b', ov);
+    var schnitt = $('.intro-schnitt', ov), platteA = $('.intro-a', ov), platteB = $('.intro-b', ov), glut = $('.intro-glut', ov);
+    r3dEl.classList.add('still');
     var funkenIntro = Funken($('.funken', ov));
     // Der Schnitt geht genau durch die Nabe
-    (function () { var r = rotorEl.getBoundingClientRect(); ov.style.setProperty('--sy', ((r.top + r.height / 2) / w.innerHeight * 100).toFixed(2) + '%'); })();
+    (function () { var r = zeichen.getBoundingClientRect(); ov.style.setProperty('--sy', ((r.top + r.height / 2) / w.innerHeight * 100).toFixed(2) + '%'); })();
+
+    // Klingen einzeln, damit sie zusammenfliegen können
+    var ganz = $('path', dreh), teile = (ganz.getAttribute('d').match(/M[^M]+/g) || []);
+    dreh.removeChild(ganz);
+    var klingen = teile.map(function (t) { var p = d.createElementNS(NS, 'path'); p.setAttribute('d', t); p.setAttribute('fill', '#fff'); dreh.appendChild(p); return p; });
+
     var anims = [];
     var lauf = function (el, kf, opt) { var a = el.animate(kf, opt); anims.push(a); return a; };
     var EASE = 'cubic-bezier(.2,.75,.15,1)';
 
     // 1) Zusammenbau: jede Klinge fliegt aus ihrer Richtung heran
-    $$('.i-klinge', ov).forEach(function (p, n) {
+    klingen.forEach(function (p, n) {
       var z = (p.getAttribute('d').match(/-?\d+(\.\d+)?/g) || []).map(Number), sx = 0, sy = 0, k = 0;
       for (var j = 0; j + 1 < z.length; j += 2) { sx += z[j]; sy += z[j + 1]; k++; }
       sx /= k || 1; sy /= k || 1;
       var lang = Math.hypot(sx, sy) || 1, ux = sx / lang, uy = sy / lang;
-      p.style.transformOrigin = sx.toFixed(1) + 'px ' + sy.toFixed(1) + 'px';
+      p.style.transformBox = 'view-box'; p.style.transformOrigin = sx.toFixed(1) + 'px ' + sy.toFixed(1) + 'px';
       lauf(p, [
-        { transform: 'translate(' + (ux * R * 1.25).toFixed(1) + 'px,' + (uy * R * 1.25).toFixed(1) + 'px) rotate(' + (n % 2 ? 70 : -70) + 'deg) scale(.5)', opacity: 0 },
+        { transform: 'translate(' + (ux * 130).toFixed(1) + 'px,' + (uy * 130).toFixed(1) + 'px) rotate(' + (n % 2 ? 70 : -70) + 'deg) scale(.5)', opacity: 0 },
         { opacity: 1, offset: 0.4 },
         { transform: 'none', opacity: 1 }
       ], { duration: 720, delay: 60 + n * 65, easing: 'cubic-bezier(.2,.9,.25,1.08)', fill: 'both' });
     });
-    // 2) Nabe springt ein, Lichtblitz
-    lauf(nabe, [{ transform: 'scale(0)', opacity: 0 }, { transform: 'scale(1.22)', opacity: 1, offset: 0.6 }, { transform: 'scale(1)', opacity: 1 }], { duration: 520, delay: 640, easing: 'ease-out', fill: 'both' });
-    lauf($('.intro-glut', ov), [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0.45 }], { duration: 900, delay: 700, fill: 'both' });
-    lauf(upm, [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: 850, easing: EASE, fill: 'both' });
-    if (logoEl) lauf(logoEl, [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)' }], { duration: 800, delay: 1450, easing: EASE, fill: 'both' });
+    // 2) Die Nabe fährt in Stufen nach vorn aus
+    $$('.r3d-n', ov).forEach(function (n, i) {
+      lauf(n, [{ scale: '0' }, { scale: '1.18', offset: 0.65 }, { scale: '1' }], { duration: 480, delay: 600 + i * 70, easing: 'ease-out', fill: 'both' });
+    });
+    lauf(glut, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0.5 }], { duration: 900, delay: 750, fill: 'both' });
+    lauf(upm, [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: 900, easing: EASE, fill: 'both' });
+    lauf(wort, [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)' }], { duration: 900, delay: 1250, easing: EASE, fill: 'both' });
+    // Erst steht der Messerkopf allein in der Mitte, dann gleitet der Schriftzug heraus
+    var versatz = (gross.offsetWidth - zeichen.offsetWidth) / 2;
+    lauf(gross, [{ transform: 'translateX(' + versatz.toFixed(1) + 'px)' }, { transform: 'none' }], { duration: 900, delay: 1250, easing: EASE, fill: 'both' });
 
-    // 3) Anlauf: Drehzahl steigt gleichmäßig, die Werte hängen alle an omega
-    var T_AN = 900, T_VOLL = 2300, T_AUS = 2700, T_LANDUNG = 3650, OMEGA = 1440, OMEGA_END = 315;
-    var start = performance.now(), winkel = 0, omega = 0, zuletztI = start, raus = false, fertig = false;
-    var zeitVersatz = 0;
+    // 3) Anlauf auf 5.000 UpM, alles hängt an omega (Grad je Sekunde)
+    var T_AN = 900, T_VOLL = 2200, T_AUS = 2750, T_LANDUNG = 3700, OMEGA = 1440, OMEGA_END = 160;
+    var start = performance.now(), winkel = 0, omega = 0, zuletztI = start, raus = false, fertig = false, zeitVersatz = 0;
     function ueberspringen() {
       if (raus) return;
       var t = performance.now() - start + zeitVersatz;
@@ -300,36 +270,31 @@
 
     function ausgang() {
       raus = true;
-      // Schnittlinie im Winkel der Teilung, dann gehen die Platten auseinander
       var B = w.innerWidth, H = w.innerHeight, grad = -Math.atan2(0.24 * H, B) * 180 / Math.PI;
       lauf(schnitt, [{ opacity: 1, transform: 'rotate(' + grad + 'deg) scaleX(0)' }, { opacity: 1, transform: 'rotate(' + grad + 'deg) scaleX(1)' }], { duration: 260, easing: 'cubic-bezier(.6,0,.4,1)', fill: 'forwards' });
       lauf(schnitt, [{ opacity: 1 }, { opacity: 0 }], { duration: 400, delay: 420, fill: 'forwards' });
       lauf(platteA, [{ transform: 'none' }, { transform: 'translate(-4%,-108%)' }], { duration: 900, delay: 200, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'forwards' });
       lauf(platteB, [{ transform: 'none' }, { transform: 'translate(4%,108%)' }], { duration: 900, delay: 200, easing: 'cubic-bezier(.7,0,.2,1)', fill: 'forwards' });
       lauf(upm, [{ opacity: 1 }, { opacity: 0, transform: 'translateY(10px)' }], { duration: 300, fill: 'forwards' });
-      if (logoEl) lauf(logoEl, [{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+      lauf(glut, [{ opacity: 0.5 }, { opacity: 0 }], { duration: 400, fill: 'forwards' });
       lauf($('.intro-weiter', ov), [{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
-      $$('.strich-tacho, .tacho, .tacho-spur', ov).forEach(function (el) { lauf(el, [{ opacity: 1 }, { opacity: 0 }], { duration: 350, fill: 'forwards' }); });
-      // Der Messerkopf fliegt an seinen Platz im Startbereich
-      var von = rotorEl.getBoundingClientRect(), nach = heldRotor.getBoundingClientRect();
-      var dx = (nach.left + nach.width / 2) - (von.left + von.width / 2), dy = (nach.top + nach.height / 2) - (von.top + von.height / 2), sk = nach.width / von.width;
-      var zielDeckkraft = parseFloat(getComputedStyle(rotorHuelle || heldRotor).opacity) || 1;
-      lauf(rotorEl, [{ transform: 'none', opacity: 1 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + sk + ')', opacity: zielDeckkraft }],
-        { duration: T_LANDUNG - T_AUS - 50, delay: 50, easing: 'cubic-bezier(.65,0,.25,1)', fill: 'forwards' });
-      setTimeout(function () { body.classList.add('bereit'); }, 260);
+      // Das ganze Logo fliegt nach links oben in die Kopfzeile
+      var von = gross.getBoundingClientRect(), nach = kopfLogo.getBoundingClientRect();
+      var sk = nach.height / von.height;
+      var dx = nach.left - von.left, dy = (nach.top + nach.height / 2) - (von.top + von.height * sk / 2);
+      lauf(gross, [{ transform: 'none' }, { transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + sk.toFixed(4) + ')' }],
+        { duration: T_LANDUNG - T_AUS - 60, delay: 60, easing: 'cubic-bezier(.65,0,.25,1)', fill: 'forwards' });
+      setTimeout(function () { body.classList.add('bereit'); }, 300);
     }
 
     function landen() {
       fertig = true;
-      // Übergabe an den Messerkopf im Startbereich: gleicher Winkel, gleiche Drehzahl
-      var held = $('.buehne-rotor .rotor');
-      if (held) held.style.transition = 'none';
+      // Übergabe an das Logo in der Kopfzeile: gleicher Winkel, gleiche Drehzahl
       html.classList.remove('intro-aktiv');
       rotor.winkel(winkel);
-      rotor.tempo = omega / 22.5; rotor.schub = 0;
-      if (held) { void held.offsetWidth; requestAnimationFrame(function () { held.style.transition = ''; }); }
+      rotor.tempo = omega / 40; rotor.schub = 0;
       w.removeEventListener('wheel', ueberspringen); w.removeEventListener('touchstart', ueberspringen); w.removeEventListener('keydown', ueberspringen);
-      lauf(ov, [{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' }).onfinish = function () { ov.remove(); };
+      lauf(ov, [{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' }).onfinish = function () { ov.remove(); };
     }
 
     (function bild(jetzt) {
@@ -340,15 +305,11 @@
       else if (t < T_AUS) omega = OMEGA;
       else omega = OMEGA - (OMEGA - OMEGA_END) * Math.min(1, (t - T_AUS) / (T_LANDUNG - T_AUS));
       winkel += omega * dt;
-      dreh.setAttribute('transform', 'rotate(' + winkel.toFixed(2) + ')');
-      var anteil = Math.min(1, t < T_AUS ? omega / OMEGA : 1);
-      var zahl = t < T_AUS ? Math.round(anteil * 5000 / 10) * 10 : 5000;
-      upmZahl.textContent = String(zahl).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-      tacho.setAttribute('stroke-dashoffset', (umfang * (1 - anteil)).toFixed(1));
-      var an = Math.round(anteil * STRICHE);
-      strichEl.forEach(function (el, n) { el.classList.toggle('an', n < an); el.classList.toggle('rot', n < an && n >= STRICHE * 0.8); });
-      scheibe.setAttribute('opacity', Math.max(0, Math.min(0.85, (omega - 500) / 1100)).toFixed(3));
-      if (omega > 600 && t < T_AUS + 300) funkenIntro.spruehen(Math.round((omega - 600) / 95), rotorEl.offsetWidth * 0.43, omega);
+      dreh.style.transform = 'rotate(' + winkel.toFixed(2) + 'deg)';
+      var anteil = Math.min(1, omega / OMEGA);
+      upmZahl.textContent = String(t < T_AUS ? Math.round(anteil * 5000 / 10) * 10 : 5000).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      r3dEl.style.setProperty('--unschaerfe', Math.max(0, Math.min(0.85, (omega - 500) / 1100)).toFixed(3));
+      if (omega > 600 && t < T_AUS + 250) funkenIntro.spruehen(Math.round((omega - 600) / 110), zeichen.offsetWidth * 0.46, omega, 0.8);
       funkenIntro.schritt(dt);
       if (!raus && t >= T_AUS) ausgang();
       if (t >= T_LANDUNG) { landen(); return; }

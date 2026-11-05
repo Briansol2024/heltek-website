@@ -85,8 +85,6 @@ ROTOR_SPRITE = (
     '<stop offset=".5" stop-color="#fff" stop-opacity=".7"/><stop offset=".62" stop-color="#fff" stop-opacity="0"/></linearGradient>'
     '<radialGradient id="scheibe"><stop offset=".22" stop-color="#c8cfd7" stop-opacity="0"/><stop offset=".55" stop-color="#c8cfd7" stop-opacity=".42"/>'
     '<stop offset=".86" stop-color="#9aa4b0" stop-opacity=".3"/><stop offset="1" stop-color="#9aa4b0" stop-opacity="0"/></radialGradient>'
-    f'<g id="rk"><path fill-rule="evenodd" d="{_pfade[0]}"/></g>'
-    f'<g id="rn"><path fill="#ff0716" fill-rule="evenodd" d="{_pfade[1]}"/></g>'
     '</defs></svg>')
 
 
@@ -104,6 +102,22 @@ def rotor(cls="rotor", stahl=False, kennung="held"):
             f'<circle class="scheibe" r="{R * .97:.0f}" fill="url(#scheibe)"/>'
             f'<g mask="url(#m-{kennung})"><rect {flaeche} fill="url(#stahl)"/><rect class="glanz" {flaeche} fill="url(#glanz)"/></g>'
             f'<g class="nabe"><use href="#rn"/></g></svg></div>')
+
+
+KLINGEN3D = (WURZEL / "daten" / "klingen3d.txt").read_text(encoding="utf-8").strip()
+
+
+def r3d(kennung, cls=""):
+    """Messerkopf aus dem Firmenzeichen in 3D: Die Klingen drehen sich in ihrer eigenen, schräg
+    gestellten Ebene, die rote Nabe ragt in Stufen nach vorn (so ist das Zeichen gemeint)."""
+    f = 'x="-100" y="-100" width="200" height="200"'
+    return (f'<span class="r3d{(" " + cls) if cls else ""}" aria-hidden="true"><span class="r3d-ebene">'
+            f'<svg class="r3d-scheibe" viewBox="-100 -100 200 200"><defs><mask id="m3-{kennung}" maskUnits="userSpaceOnUse" {f}>'
+            f'<g class="r3d-dreh"><path fill="#fff" d="{KLINGEN3D}"/></g></mask></defs>'
+            f'<circle class="scheibe" r="97" fill="url(#scheibe)"/>'
+            f'<g mask="url(#m3-{kennung})"><rect {f} fill="url(#stahl)"/><rect class="glanz" {f} fill="url(#glanz)"/></g></svg>'
+            '<span class="r3d-n n0"></span><span class="r3d-n n1"></span><span class="r3d-n n2"></span><span class="r3d-n n3"></span><span class="r3d-n n4"></span>'
+            '</span></span>')
 
 
 # ── Daten: Maschinen ─────────────────────────────────────────────────────────────────
@@ -226,7 +240,7 @@ def rahmen(pfad, titel, beschreibung, inhalt, aktiv="", kopfbild=None, extra_kop
 <a class="sprung" href="#inhalt">Zum Inhalt springen</a>
 <header class="kopf">
   <div class="huelle">
-    <a class="logo" href="{r or './'}" aria-label="HELTEK Maschinenbau – zur Startseite"><img src="{r}assets/img/logo-heltek-kilia-600.png" alt="HELTEK Maschinenbau · KILIA" width="600" height="132"></a>
+    <a class="logo" href="{r or './'}" aria-label="HELTEK Maschinenbau – zur Startseite"><span class="logo-zeichen">{r3d("kopf")}</span><img class="logo-wort" src="{r}assets/img/logo-wortmarke.png" alt="HELTEK Maschinenbau · KILIA" width="760" height="184"></a>
     <nav class="nav" aria-label="Hauptmenü">{nav}</nav>
     <a class="kopf-tel" href="tel:{TEL_LINK}" aria-label="Anrufen: {TEL_ANZEIGE}">{sym("tel")}<span>{TEL_ANZEIGE}</span></a>
     <button class="menue-knopf" type="button" aria-expanded="false" aria-controls="menue" aria-label="Menü öffnen"><span></span><span></span><span></span></button>
@@ -234,7 +248,7 @@ def rahmen(pfad, titel, beschreibung, inhalt, aktiv="", kopfbild=None, extra_kop
   <div class="fortschritt" aria-hidden="true"></div>
 </header>
 <div class="menue" id="menue" aria-hidden="true">
-  {rotor("rotor rotor-deko")}
+  {r3d("menue", "rotor-deko")}
   <nav aria-label="Menü">{menue_nav}</nav>
   <div class="menue-fuss"><a href="tel:{TEL_LINK}">{TEL_ANZEIGE}</a><a href="mailto:{MAIL}">{MAIL}</a><span>Mo–Do 8–17 Uhr · Fr 8–13 Uhr</span></div>
 </div>
@@ -299,12 +313,12 @@ def mkarte(m, r, lazy=True):
 </a>"""
 
 
-def kartenreihe(r, maschinen, titel, marke_text, alle_link, alle_text, hell=True):
+def kartenreihe(r, maschinen, titel, marke_text, alle_link, alle_text, hell=True, nr=""):
     karten = "\n".join(mkarte(m, r) for m in maschinen)
     return f"""<section class="abschnitt {'hell' if hell else 'weiss'}" data-reihe>
   <div class="huelle">
     <div class="abschnitt-kopf">
-      <div><div class="marke">{e(marke_text)}</div><h2 class="wort-auf">{titel}</h2></div>
+      <div><div class="marke">{f"<b>{nr}</b> " if nr else ""}{e(marke_text)}</div><h2 class="wort-auf">{titel}</h2></div>
       <div class="reihe-steuer"><button class="rund" type="button" data-zurueck aria-label="Zurück">{sym('links')}</button><button class="rund" type="button" data-weiter aria-label="Weiter">{sym('rechts')}</button></div>
     </div>
     <div class="karten-reihe" data-staffel=".06">{karten}</div>
@@ -313,15 +327,15 @@ def kartenreihe(r, maschinen, titel, marke_text, alle_link, alle_text, hell=True
 </section>"""
 
 
-def mietkauf(r, mit_id=True):
+def mietkauf(r, mit_id=True, nr=""):
     vorteile = ["Sofort starten, in festen Raten zahlen", "Liquidität schonen", "Mietkauf: späterer Eigentumserwerb", "Leasing: flexible Laufzeiten"]
     li = "".join(f'<li data-auf style="--d:{i * .08:.2f}s"><span class="haken"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>{e(v)}</li>' for i, v in enumerate(vorteile))
     betreff = "mailto:" + MAIL + "?subject=" + "Anfrage%20Mietkauf%20%2F%20Leasing"
     return f"""<section class="abschnitt dunkel mietkauf"{' id="mietkauf"' if mit_id else ''}>
-  {rotor("rotor rotor-deko")}
+  {r3d("miet", "rotor-deko")}
   <div class="huelle">
     <div>
-      <div class="marke">Finanzierung</div>
+      <div class="marke">{f"<b>{nr}</b> " if nr else ""}Finanzierung</div>
       <h2 class="wort-auf" style="margin-bottom:26px">Mietkauf <em>&amp;</em> Leasing</h2>
       <p class="einleitung leise" data-auf>Ab sofort bieten wir für alle HELTEK / KILIA Kutter, Wölfe und Korimaten flexible Mietkauf- und Leasingmodelle an.</p>
       <p class="leise" data-auf style="--d:.1s">Jetzt beraten lassen – wir erstellen Ihnen schnell ein passendes Angebot.</p>
@@ -338,12 +352,12 @@ def zeiten_liste():
             '<dt data-tag="5">Fr</dt><dd data-tag="5">08:00 – 13:00 Uhr</dd><dt data-tag="6,0">Sa – So</dt><dd data-tag="6,0">geschlossen</dd></dl>')
 
 
-def kontakt_block(r, ueberschrift="Sprechen Sie mit uns."):
+def kontakt_block(r, ueberschrift="Sprechen Sie mit uns.", nr=""):
     aussen = "".join(f'<li><a href="{u}" rel="noopener" target="_blank">{sym(k) if k in ("instagram", "youtube") else sym("laden")}{e(n)}</a></li>' for k, (n, u) in LINKS_AUSSEN.items())
     return f"""<section class="abschnitt dunkel kontakt-gross">
   <div class="huelle">
     <div>
-      <div class="marke">Kontakt</div>
+      <div class="marke">{f"<b>{nr}</b> " if nr else ""}Kontakt</div>
       <h2 class="wort-auf" style="margin-bottom:22px">{ueberschrift}</h2>
       <p class="leise einleitung" data-auf>Haben Sie Produktanfragen oder Anregungen? Rufen Sie uns an oder schreiben Sie uns eine E-Mail. Wir melden uns umgehend bei Ihnen.</p>
       <a class="telefon-gross" href="tel:{TEL_LINK}" data-auf>{TEL_ANZEIGE}</a>
@@ -354,7 +368,7 @@ def kontakt_block(r, ueberschrift="Sprechen Sie mit uns."):
       </ul>
     </div>
     <aside class="ortkarte" data-auf="rechts">
-      {rotor("rotor rotor-deko")}
+      {r3d("ort", "rotor-deko")}
       <h3>Unser Standort</h3>
       <address>{e(FIRMA)}<br>{e(STRASSE)}<br>{e(PLZ_ORT)}</address>
       <div class="knopfreihe"><a class="knopf knopf-rot knopf-klein" href="{ROUTE}" rel="noopener" target="_blank">{sym('ort')} Route planen</a><a class="knopf knopf-rahmen knopf-klein" href="{r}kontakt/#formular">Anfrage schreiben</a></div>
@@ -371,7 +385,7 @@ def seitenkopf(r, marke_text, titel, einleitung, bild=None, pfad_teile=None, kno
         teile = [f'<a href="{r or "./"}">Start</a>'] + [f'<a href="{r + z}">{e(n)}</a>' if z else f'<span aria-current="page">{e(n)}</span>' for z, n in pfad_teile]
         pfad = '<nav class="pfad auftritt" aria-label="Brotkrumen">' + ' <span aria-hidden="true">/</span> '.join(teile) + '</nav>'
     return f"""<section class="seitenkopf">
-  {b}{rotor("rotor rotor-deko")}
+  {b}{r3d("seitenkopf", "rotor-deko")}
   <div class="huelle">
     {pfad}
     <div class="marke auftritt" style="--d:.05s">{e(marke_text)}</div>
@@ -392,7 +406,7 @@ def startseite():
         f'<img src="assets/maschinen/{m["quelle_slug"]}/{m["bilder"][0]["nr"]:02d}-720.jpg" alt="" width="96" height="72" loading="lazy">'
         f'<span><small>{e(KAT_NAME[m["kat"]])}{" · " + e(m["marke"]) if m["marke"] else ""}</small><b>{e(m["titel"])}</b></span><i>{sym("pfeil")}</i></a>'
         for i, m in enumerate(neu))
-    neu_karte = (f'<aside class="neu-karte auftritt" style="--d:.8s" aria-label="Neu im Bestand">'
+    neu_karte = (f'<aside class="neu-karte" data-auf="rechts" aria-label="Neu im Bestand">'
                  f'<div class="neu-kopf"><span class="neu-punkt"></span>Neu im Bestand<span class="neu-zahl">1 / {len(neu)}</span></div>'
                  f'<div class="neu-liste">{eintraege}</div><div class="neu-balken"><i></i></div></aside>')
     band = "".join(f"<span>{w}</span>" for w in ["Kutter", "Vakuumkutter", "Fleischwölfe", "Autoklaven", "Füller", "Speckschneider", "Mischer", "Ersatzteile", "Kundendienst"])
@@ -415,24 +429,29 @@ def startseite():
         for i, (_, t, name) in enumerate(REZENSIONEN))
     inhalt = f"""
 <section class="buehne" data-intro>
-  <div class="buehne-bild" data-tiefe=".25" style="background-image:url(assets/img/halle-2000.jpg)"></div>
+  <div class="buehne-mitte">
+    <figure class="buehne-bild-gross auftritt" style="--d:.05s">
+      <span class="rahmen"><img src="assets/img/sortiment-2000.jpg" alt="Das KILIA-Maschinenprogramm: Kutter, Vakuumkutter und Fleischwölfe" width="2000" height="1334" fetchpriority="high" decoding="async"></span>
+    </figure>
+    <h1 class="buehne-titel"><span class="zeile"><span>Qualitätsprodukte</span></span><span class="zeile"><span>für <em>Profis.</em></span></span></h1>
+  </div>
+  <a class="scrollhinweis" href="#willkommen" aria-label="Weiter zum Inhalt"><i></i></a>
+</section>
+
+<section class="abschnitt dunkel willkommen" id="willkommen">
   <div class="huelle">
     <div>
-      <div class="marke auftritt"><span>Fleischerei- &amp; Großküchentechnik<span class="nur-gross"> · Bad Fallingbostel</span></span></div>
-      <h1 class="buehne-titel"><span class="zeile"><span>Qualitäts-</span></span><span class="zeile"><span>produkte</span></span><span class="zeile"><span>für <em>Profis.</em></span></span></h1>
-      <p class="einleitung auftritt" style="--d:.35s"><strong>HELTEK Maschinenbau</strong> – Ihr Spezialist für KILIA-Fleischereimaschinen und KORIMAT-Autoklaven. Neumaschinen, Werksüberholungen, Original-Ersatzteile und Kundendienst aus einer Hand.</p>
-      <div class="knopfreihe auftritt" style="--d:.5s"><a class="knopf knopf-rot" href="maschinen/">Maschinen ansehen {sym('pfeil', 'pfeil')}</a><a class="knopf knopf-rahmen" href="kontakt/">Beratung anfragen</a></div>
-      <ul class="vertrauen auftritt" style="--d:.65s"><li>{sym('haken')}Inhaber der Marke KILIA</li><li>{sym('haken')}Offizieller KORIMAT-Partner</li><li>{sym('haken')}Mietkauf &amp; Leasing</li></ul>
-    </div>
-    <div class="buehne-rotor">
-      <span class="ring ring-2" aria-hidden="true"></span><span class="ring ring-1" aria-hidden="true"></span>
-      <div class="kipp">{rotor("rotor", stahl=True)}<canvas class="funken" aria-hidden="true"></canvas></div>
+      <div class="marke"><b>01</b> Fleischerei- &amp; Großküchentechnik · Bad Fallingbostel</div>
+      <h2 class="wort-auf">Ihr Spezialist für KILIA und KORIMAT.</h2>
+      <p class="einleitung" data-auf><strong>HELTEK Maschinenbau</strong> – Neumaschinen, Werksüberholungen, Original-Ersatzteile und Kundendienst aus einer Hand. Seit 2016 Inhaber der traditionsreichen Marke KILIA, seit 2021 offizieller Vertriebspartner für KORIMAT-Autoklaven.</p>
+      <div class="knopfreihe" data-auf style="--d:.1s"><a class="knopf knopf-rot" href="maschinen/">Maschinen ansehen {sym('pfeil', 'pfeil')}</a><a class="knopf knopf-rahmen" href="kontakt/">Beratung anfragen</a></div>
+      <ul class="vertrauen" data-auf style="--d:.2s"><li>{sym('haken')}Inhaber der Marke KILIA</li><li>{sym('haken')}Offizieller KORIMAT-Partner</li><li>{sym('haken')}Mietkauf &amp; Leasing</li></ul>
     </div>
     {neu_karte}
   </div>
-  <div class="scrollhinweis" aria-hidden="true"><i></i>Scrollen</div>
-  <div class="laufband" aria-hidden="true"><div class="laufband-spur">{band}{band}</div></div>
 </section>
+
+<div class="laufband" aria-hidden="true"><div class="laufband-spur">{band}{band}</div></div>
 
 <section class="dunkel zahlen" aria-label="HELTEK in Zahlen">
   <div class="huelle">{zahl_html}</div>
@@ -441,7 +460,7 @@ def startseite():
 <section class="abschnitt hell" id="marken">
   <div class="huelle">
     <div class="abschnitt-kopf">
-      <div><div class="marke">Unsere Marken</div><h2 class="wort-auf">Zwei Namen, die Profis kennen.</h2>
+      <div><div class="marke"><b>02</b> Unsere Marken</div><h2 class="wort-auf">Zwei Namen, die Profis kennen.</h2>
       <p class="leise" data-auf>Seit 2016 ist die HELTEK Maschinenbau GmbH &amp; Co. KG Inhaber der traditionsreichen Marke KILIA. Seit 2021 sind wir offizieller Vertriebspartner für KORIMAT-Autoklaven.</p></div>
     </div>
     <div class="marken">
@@ -474,7 +493,7 @@ def startseite():
 <section class="abschnitt dunkel" id="leistungen">
   <div class="huelle">
     <div class="abschnitt-kopf">
-      <div><div class="marke">Leistungen</div><h2 class="wort-auf">Alles aus einer Hand.</h2>
+      <div><div class="marke"><b>03</b> Leistungen</div><h2 class="wort-auf">Alles aus einer Hand.</h2>
       <p class="leise" data-auf>Mehr Auswahl, perfekt abgestimmte Lösungen und ein zentraler Ansprechpartner für Ihre Technik – von der Beratung über Lieferung und Inbetriebnahme bis zur Wartung.</p></div>
       <a class="knopf knopf-rahmen" href="kundendienst/" data-auf>Zum Kundendienst {sym('pfeil', 'pfeil')}</a>
     </div>
@@ -482,18 +501,18 @@ def startseite():
   </div>
 </section>
 
-{kartenreihe(r, MASCHINEN[:10], "Frisch im Bestand.", "Maschinen", "maschinen/", f"Alle {n} Maschinen ansehen")}
+{kartenreihe(r, MASCHINEN[:10], "Frisch im Bestand.", "Maschinen", "maschinen/", f"Alle {n} Maschinen ansehen", nr="04")}
 
-{mietkauf(r)}
+{mietkauf(r, nr="05")}
 
 <section class="abschnitt hell" id="stimmen">
   <div class="huelle">
-    <div class="abschnitt-kopf"><div><div class="marke">Rezensionen</div><h2 class="wort-auf">Was Kunden sagen.</h2></div></div>
+    <div class="abschnitt-kopf"><div><div class="marke"><b>06</b> Rezensionen</div><h2 class="wort-auf">Was Kunden sagen.</h2></div></div>
     <div class="stimmen">{stimmen}</div>
   </div>
 </section>
 
-{kontakt_block(r)}
+{kontakt_block(r, nr="07")}
 """
     ld = {"@context": "https://schema.org", "@type": "LocalBusiness", "name": FIRMA, "url": BASIS + "/", "telephone": "+49 5163 91000",
           "email": MAIL, "image": BASIS + "/assets/img/og.jpg",
@@ -502,7 +521,7 @@ def startseite():
               {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday"], "opens": "08:00", "closes": "17:00"},
               {"@type": "OpeningHoursSpecification", "dayOfWeek": "Friday", "opens": "08:00", "closes": "13:00"}],
           "sameAs": [u for _, u in LINKS_AUSSEN.values()]}
-    vorlade = '<link rel="preload" as="image" href="assets/img/halle-2000.jpg">\n'
+    vorlade = '<link rel="preload" as="image" href="assets/img/sortiment-2000.jpg">\n'
     return rahmen("index.html", "HELTEK Maschinenbau | Fleischerei- und Großküchentechnik",
                   "HELTEK Maschinenbau in Bad Fallingbostel: KILIA-Kutter, Vakuumkutter und Fleischwölfe, KORIMAT-Autoklaven, Gebrauchtmaschinen, Ersatzteile, Kundendienst sowie Mietkauf und Leasing.",
                   inhalt, aktiv="", extra_kopf=vorlade, jsonld=ld, intro=True)
@@ -811,7 +830,7 @@ DATENSCHUTZ = f"""
 # ── 404 und Weiterleitungen alter Adressen ───────────────────────────────────────────
 def nicht_gefunden():
     inhalt = f"""<section class="nichtda dunkel"><div>
-  {rotor("rotor", stahl=True, kennung="fehler")}
+  {r3d("fehler", "r3d-404")}
   <div class="marke" style="justify-content:center">Fehler 404</div>
   <h1 style="font-size:clamp(36px,6vw,72px);margin-bottom:18px">Leerlauf.</h1>
   <p class="leise" style="max-width:44ch;margin:0 auto 28px">Diese Seite gibt es nicht (mehr). Vielleicht finden Sie, was Sie suchen, unter unseren Maschinen.</p>

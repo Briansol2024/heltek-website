@@ -111,7 +111,7 @@ p{margin:0 0 1em}
   clip-path:circle(0% at calc(100% - 40px) 38px);transition:clip-path .8s var(--ease-in);visibility:hidden;overflow:hidden}
 .menue-offen .menue{clip-path:circle(150% at calc(100% - 40px) 38px);visibility:visible;transition:clip-path .9s var(--ease)}
 .menue nav{display:flex;flex-direction:column;gap:2px;position:relative;z-index:1}
-.menue nav a{font-size:clamp(34px,9vw,64px);font-weight:800;font-stretch:var(--breit);text-transform:uppercase;text-decoration:none;line-height:1.08;
+.menue nav a{font-size:clamp(28px,8vw,64px);font-weight:800;font-stretch:var(--breit);text-transform:uppercase;text-decoration:none;line-height:1.08;
   opacity:0;transform:translateY(40px);transition:opacity .5s,transform .7s var(--ease),color .2s}
 .menue nav a:hover{color:var(--rot)}
 .menue-offen .menue nav a{opacity:1;transform:none;transition-delay:calc(.25s + var(--i)*.06s)}
@@ -560,6 +560,7 @@ body:has(.kopf.weg) .werkzeugleiste{top:0}
 }
 @media (max-width:640px){
   .jahr-gross{display:none}
+  .seitenkopf .rotor-deko{display:none}
   .leistungen{grid-template-columns:1fr}
   .leistung,.leistung:nth-child(4),.leistung:nth-child(5){grid-column:auto}
   .fuss-gitter{grid-template-columns:1fr}
